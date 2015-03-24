@@ -1,21 +1,14 @@
+## Setup
 require("dplyr")
 require("ggmap")
 require("ggplot2")
 require("ggthemes")
 require("ggvis")
-#require("gpclib")
-#require("graphics")
-#require("grDevices")
-#require("grid")
-#require("gridExtra")
-require("lattice")
-#require("lubridate")
 require("maps")
 require("maptools")
 require("RColorBrewer")
 require("rgdal")
 require("rgeos")
-#require("shiny")
 require("sp")
 
 ## Read and clean poverty data
@@ -27,12 +20,12 @@ poverty_data <- poverty[-1,-xvals]
 poverty_data$PUMA_ID <- as.factor(poverty_data$PUMA_ID)
 for (i in 5:42) {poverty_data[,i] <- as.numeric(poverty_data[,i])}
 
-## Get map
+## Get map shapes for census tracts
 setwd("~/Columbia/BlogPostProject/DATA/OGPDownload-4")
 census_tracts <- readOGR(dsn=".","Columbia_nyct2010ids")
 nyc_shapes <- spTransform(census_tracts, CRS("+proj=longlat + datum=WGS84"))
  
-## Merge map with poverty data  
+## Merge map shapes with poverty data  
 nycmap_df <- fortify(nyc_shapes)
 map_data  <- data.frame(id=rownames(nyc_shapes@data), 
                         PUMA_ID=nyc_shapes@data$puma, 

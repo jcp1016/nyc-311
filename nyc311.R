@@ -1,7 +1,3 @@
-require("qdapTools")
-require("reshape")
-require("gplots")
-require("RColorBrewer")
 require("dplyr")
 
 ## Add categories for poverty data
@@ -14,6 +10,7 @@ poverty_eld_df  <- poverty_data[,c(2,4,45)]
 setwd("~/Columbia/nyc-311")
 
 ## Attach PUMA IDs to 311 data based on a lookup
+require("qdapTools")
 zipcode_to_puma <- read.csv("nyc_zcta10_to_puma10.csv", stringsAsFactors=FALSE)
 zipcode_to_puma$zcta10 <- as.character(zipcode_to_puma$zcta10)
 nyc311_df$PUMA_ID <- lookup(nyc311_df$Zipcode, zipcode_to_puma[,c(1,4)])
@@ -37,6 +34,11 @@ nyc311_df$ComplaintType[substr(nyc311_df$ComplaintType,1,5)  == "Noise"] <- "Noi
 nyc311_df$ComplaintType[substr(nyc311_df$ComplaintType,1,11) == "Street Sign"] <- "Street Sign Damaged/Missing"
 nyc311_df$ComplaintType[substr(nyc311_df$ComplaintType,1,10) == "Fire Alarm"] <- "Fire Alarm Addn/Modif/Insp"
 nyc311_df$ComplaintType[substr(nyc311_df$ComplaintType,1,12) == "Highway Sign"] <- "Highway Sign Damaged/Missing"
+
+## Prep for plotting
+require("reshape")
+require("gplots")
+require("RColorBrewer")
 
 ## Aggregate by complaint type
 by_cat <- group_by( nyc311_df, PUMA_ID, ComplaintType )
