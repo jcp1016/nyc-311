@@ -1,0 +1,24 @@
+---
+layout: post
+title:  "What a Million Calls to 311 Reveal About New York"
+date:   2015-03-24 14:23:00
+categories: data analysis nyc 311
+---
+You may have seen the image below in Wired magazine or at the Museum of Modern Art in Manhattan.  Although its title references "100 million calls", it is based on one week of calls placed during September 2010.  The image is beautiful, showing how complaint types changed depending on the time of day.  I wanted to know more, such as how complaints varied by neighborhood and how calls from poor neighborhoods compared with those from wealthier ones.
+<br /><br />
+![Wired image]({{ site.baseurl }}/assets/wired311.jpg)
+<br /><br />
+I used 311 data from 2013 and aligned it with poverty statistics from the 2013 3-year American Community Survey. Census data and 311 data do not line up exactly because the census uses "census tracts" and 311 data is provided by zip code and GPS coordinates.  However a GIS expert at Baruch CUNY has done the work of assigning NYC zip codes to census boundaries based on a number of factors.  For more information on this, refer to the excellent "Finding NYC Neighborhood Census Data" listed below.    
+<br />
+![Complaints by community district]({{ site.baseurl }}/assets/complaints_by_cd.png)
+<br />
+![Complaints by poverty level]({{ site.baseurl }}/assets/complaints_by_level.png)
+<br /> 
+![Poverty level by community]({{ site.baseurl }}/assets/povertymap.png)
+<br /><br /><br />
+Data:  NYC Open Data, American Community Survey
+<br />
+Shapefiles:  GeoData@Columbia, culspatial.cul.columbia.edu
+<br />
+References:  Finding NYC Neighborhood Census Data:  http://guides.newman.baruch.cuny.edu/ld.php?content_id=7154885, Frank Donnelly, September 2, 2014
+
