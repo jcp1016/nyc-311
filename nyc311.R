@@ -94,7 +94,7 @@ top_22 <- inner_join(s1, top_complaints, by="ComplaintType")
 names(top_22)[3] <- c("n")
 top_22[,4] <- NULL
 ggplot(data=top_22,
-       aes(x=ComplaintType, y=n, colour=ComplaintType, group=ComplaintType)) +
+       aes(x=ComplaintType, colour=ComplaintType, group=ComplaintType)) +
         geom_bar() + facet_wrap(~PvCategory)
 
 ## Aggregate by community district and complaint type
