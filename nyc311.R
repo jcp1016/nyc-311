@@ -11,6 +11,7 @@ setwd("~/Columbia/nyc-311")
 
 ## Attach PUMA IDs to 311 data based on a lookup
 require("qdapTools")
+setwd("~/Columbia/nyc-311/DATA")
 zipcode_to_puma <- read.csv("nyc_zcta10_to_puma10.csv", stringsAsFactors=FALSE)
 zipcode_to_puma$zcta10 <- as.character(zipcode_to_puma$zcta10)
 nyc311_df$PUMA_ID <- lookup(nyc311_df$Zipcode, zipcode_to_puma[,c(1,4)])
@@ -39,6 +40,7 @@ nyc311_df$ComplaintType[substr(nyc311_df$ComplaintType,1,12) == "Highway Sign"] 
 require("reshape")
 require("gplots")
 require("RColorBrewer")
+setwd("~/Columbia/nyc-311")
 
 ## Aggregate by complaint type
 by_cat <- group_by( nyc311_df, PUMA_ID, ComplaintType )
@@ -59,19 +61,19 @@ t4 <- t3[order(desc(t3$Total)),]
 t4 <- t4[-1,]
 row.names(t4) <- t4$ComplaintType
 t4 <- t4[,-1]
-t4 <- t4[,-ncol(t4)]  
+t4 <- t4[,-ncol(t4)]
 data_matrix <- data.matrix(scale(t4))
 pdf("heatmap_lvl.pdf", width=10, height=12)
-heatmap.2(data_matrix,  
-          Rowv=NA, Colv=NA, 
+heatmap.2(data_matrix,
+          Rowv=NA, Colv=NA,
           dendrogram='none',
-          scale='none', 
-          col=brewer.pal(9,"Blues"), 
+          scale='none',
+          col=brewer.pal(9,"Blues"),
           main="What Calls to 311 \nReveal About New York",
-          key=FALSE, 
-          keysize=1, 
-          srtCol=0, 
-          trace='none', 
+          key=FALSE,
+          keysize=1,
+          srtCol=0,
+          trace='none',
           offsetRow = 0.5,
           offsetCol = 0.5,
           margins=c(5,12),
@@ -84,6 +86,17 @@ heatmap.2(data_matrix,
 
 dev.off()
 
+## To remake the Wired chart, limit data to top 22 complaint types
+by_ct <- group_by( data, ComplaintType )
+ct1   <- summarize( by_ct, n=sum(n) )
+top_complaints <- filter(ct1, n > 17000)
+top_22 <- inner_join(s1, top_complaints, by="ComplaintType")
+names(top_22)[3] <- c("n")
+top_22[,4] <- NULL
+ggplot(data=top_22,
+       aes(x=ComplaintType, y=n, colour=ComplaintType, group=ComplaintType)) +
+        geom_bar() + facet_wrap(~PvCategory)
+
 ## Aggregate by community district and complaint type
 by_dc <- group_by( data, CD_Name, ComplaintType )
 s1 <- summarize( by_dc, n=sum(n) )
@@ -95,18 +108,18 @@ t4 <- t3[order(desc(t3$Total)),]
 t4 <- t4[-1,]
 row.names(t4) <- t4$ComplaintType
 t4 <- t4[,-1]
-t4 <- t4[,-ncol(t4)]  
+t4 <- t4[,-ncol(t4)]
 data_matrix <- data.matrix(scale(t4))
 pdf("heatmap_cd.pdf", width=10, height=14)
-heatmap.2(data_matrix, 
-          Rowv=NA, Colv=NA, 
+heatmap.2(data_matrix,
+          Rowv=NA, Colv=NA,
           dendrogram='none',
-          scale='none', 
-          col=brewer.pal(9,"Blues"), 
+          scale='none',
+          col=brewer.pal(9,"Blues"),
           #main="311 Calls by Community",
-          key=FALSE, 
-          keysize=1, 
-          trace='none', 
+          key=FALSE,
+          keysize=1,
+          trace='none',
           offsetRow = 0.5,
           offsetCol = 0.5,
           margins=c(16,12),
@@ -114,4 +127,14 @@ heatmap.2(data_matrix,
           xlab=NULL,
           ylab=NULL)
 dev.off()
-                 
+
+#ggplot(a) + geom_blank()
+#          + theme_bw()
+#          + theme(axis.text.x = element_text(angle = 90*as.numeric("Rotate Label"%in%input$axis.attr)))
+#          + geom_line(aes_string(x=x_str,y=y_str,colour=str_fill))
+#          + scale_colour_discrete(name=nm)
+#          + scale_fill_discrete(name=nm)
+#          + geom_smooth(aes_string(x=x_str,y=y_str,fill=str_fill,colour=str_fill),method="loess")
+
+
+

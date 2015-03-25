@@ -1,15 +1,13 @@
 ## Setup
 setwd("~/Columbia/nyc-311")
-require("dplyr")
-require("ggmap")
-require("ggplot2")
-require("ggthemes")
-require("maps")
-require("maptools")
-require("RColorBrewer")
-require("rgdal")
-require("rgeos")
-require("sp")
+
+libs <- c("dplyr","ggmap","ggplot2","ggthemes","maps","maptools","RColorBrewer","rgdal","rgeos",
+          "sp","shiny","shinyAce","httr","XML","stringr","ggplot2","scales","plyr","reshape2")
+x <- sapply(libs,function(x)if(!require(x,character.only = T)) install.packages(x))
+rm(x,libs)
+
+#run App
+##shiny::runGitHub("Elections","yonicd",subdir="shiny")
 
 ## Read and clean poverty data
 setwd("~/Columbia/nyc-311/DATA")
