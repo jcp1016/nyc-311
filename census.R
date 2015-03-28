@@ -33,13 +33,15 @@ map_df    <- merge(nycmap_df, map_data, by="id")
 
 ## Make plots
 setwd("~/Columbia/nyc-311")
+pdf(file="map1.pdf", height=8.77)
 qmap('new york, ny', zoom=11, maptype='roadmap', color='bw', legend='topleft') +
         geom_polygon(aes(long, lat, group=id, fill=FamBwPvP),
                      data=map_df, alpha=.9) +
         ggtitle("Poverty in New York City") +
-        scale_fill_gradientn("% of People\nLiving Below\nPoverty Level", colours=c("white", brewer.pal(5,"YlOrRd")), na.value="grey20", guide="colourbar") +
+        scale_fill_gradientn("% of People\nLiving Below\nPoverty Level", colours=brewer.pal(4,"GnBu"), na.value="grey20", guide="colourbar") +
         theme(plot.title = element_text(size=16, face="bold"))
-ggsave("map1.png", dpi=72, width=10.02, height=7.725)
+#ggsave("map1.png", dpi=72, width=10.02, height=7.725)
+dev.off()
 
 qmap('new york, ny', zoom=11, maptype='roadmap', color='bw', legend='topleft') +
         geom_polygon(aes(long, lat, group=group, fill=FCU18BwPvP),

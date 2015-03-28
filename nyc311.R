@@ -1,9 +1,9 @@
 require("dplyr")
 
 ## Add categories for poverty data
-poverty_data$FamPvCategory  <- cut(poverty_data$FamBwPvP,   breaks=c(0,10,20,30,40,50,60), labels=c( "(0-10%]", "(10-20%]","(20-30%]", "(30-40%]", "(40-50%]", "(50-60%]" ), include.lowest=TRUE)
-poverty_data$ChldPvCategory <- cut(poverty_data$FCU18BwPvP, breaks=c(0,10,20,30,40,50,60), labels=c( "(0-10%]", "(10-20%]","(20-30%]", "(30-40%]", "(40-50%]", "(50-60%]" ), include_lowest=TRUE)
-poverty_data$EldPvCategory  <- cut(poverty_data$P65plBwPvP, breaks=c(0,10,20,30,40,50,60), labels=c( "(0-10%]", "(10-20%]","(20-30%]", "(30-40%]", "(40-50%]", "(50-60%]" ), include_lowest=TRUE)
+poverty_data$FamPvCategory  <- cut(poverty_data$FamBwPvP,   breaks=c(0,10,20,30,40,50,60), labels=c( "[0-10%)", "[10-20%)","[20-30%)", "[30-40%)", "[40-50%)", "[50-60%)" ), include.lowest=TRUE)
+poverty_data$ChldPvCategory <- cut(poverty_data$FCU18BwPvP, breaks=c(0,10,20,30,40,50,60), labels=c( "[0-10%)", "[10-20%)","[20-30%)", "[30-40%)", "[40-50%)", "[50-60%)" ), include_lowest=TRUE)
+poverty_data$EldPvCategory  <- cut(poverty_data$P65plBwPvP, breaks=c(0,10,20,30,40,50,60), labels=c( "[0-10%)", "[10-20%)","[20-30%)", "[30-40%)", "[40-50%)", "[50-60%)" ), include_lowest=TRUE)
 poverty_all_df  <- poverty_data[,c(2,4,43)]
 poverty_chld_df <- poverty_data[,c(2,4,44)]
 poverty_eld_df  <- poverty_data[,c(2,4,45)]
@@ -40,7 +40,8 @@ nyc311_df$ComplaintType[substr(nyc311_df$ComplaintType,1,12) == "Highway Sign"] 
 require("reshape")
 require("gplots")
 require("RColorBrewer")
-setwd("~/Columbia/nyc-311")
+require("ggplot2")
+require("ggthemes")
 
 ## Aggregate by complaint type
 by_cat <- group_by( nyc311_df, PUMA_ID, ComplaintType )
@@ -50,13 +51,13 @@ nyc311_cat <- summarize( by_cat, n=n() )
 data <- merge(nyc311_cat, poverty_all_df, by="PUMA_ID")
 names(data)[5] <- "PvCategory"
 
-## Aggregate by poverty category and complaint type
+## Build heatmap by poverty level
 by_pvcat <- group_by( data, PvCategory, ComplaintType )
 s1 <- summarize( by_pvcat, n=sum(n) )
 t1 <- melt(s1)
 t2 <- cast(t1, ComplaintType ~ PvCategory, sum, margins=TRUE)
 names(t2)[ncol(t2)] <- "Total"
-t3 <- filter(t2, Total > 5000)
+t3 <- filter(t2, Total > 16000)
 t4 <- t3[order(desc(t3$Total)),]
 t4 <- t4[-1,]
 row.names(t4) <- t4$ComplaintType
@@ -69,7 +70,7 @@ heatmap.2(data_matrix,
           dendrogram='none',
           scale='none',
           col=brewer.pal(9,"Blues"),
-          main="What Calls to 311 \nReveal About New York",
+          main="What A Million Calls to 311 \nReveal About New York",
           key=FALSE,
           keysize=1,
           srtCol=0,
@@ -86,18 +87,7 @@ heatmap.2(data_matrix,
 
 dev.off()
 
-## To remake the Wired chart, limit data to top 22 complaint types
-by_ct <- group_by( data, ComplaintType )
-ct1   <- summarize( by_ct, n=sum(n) )
-top_complaints <- filter(ct1, n > 17000)
-top_22 <- inner_join(s1, top_complaints, by="ComplaintType")
-names(top_22)[3] <- c("n")
-top_22[,4] <- NULL
-ggplot(data=top_22,
-       aes(x=ComplaintType, colour=ComplaintType, group=ComplaintType)) +
-        geom_bar() + facet_wrap(~PvCategory)
-
-## Aggregate by community district and complaint type
+## Build heatmap by community district
 by_dc <- group_by( data, CD_Name, ComplaintType )
 s1 <- summarize( by_dc, n=sum(n) )
 t1 <- melt(s1)
@@ -128,13 +118,22 @@ heatmap.2(data_matrix,
           ylab=NULL)
 dev.off()
 
-#ggplot(a) + geom_blank()
-#          + theme_bw()
-#          + theme(axis.text.x = element_text(angle = 90*as.numeric("Rotate Label"%in%input$axis.attr)))
-#          + geom_line(aes_string(x=x_str,y=y_str,colour=str_fill))
-#          + scale_colour_discrete(name=nm)
-#          + scale_fill_discrete(name=nm)
-#          + geom_smooth(aes_string(x=x_str,y=y_str,fill=str_fill,colour=str_fill),method="loess")
-
-
-
+## To remake the Wired chart, limit results to the top 22 complaint types
+by_ct <- group_by( data, ComplaintType )
+ct1   <- summarize( by_ct, n=sum(n) )
+top_complaints <- filter( ct1, n > 17000 )
+top_22 <- inner_join(ct1, top_complaints, by="ComplaintType")
+names(top_22)[2] <- "n"
+top_22[,3] <- NULL
+top_22 <- top_22[order(desc(top_22$n)),]
+ggplot(data=top_22, aes(x=ComplaintType, y=n, fill=ComplaintType, width=2)) +
+        geom_bar(width=0.8, stat="identity", position=position_dodge(width=0.40)) +
+        coord_flip() +
+        guides(fill=FALSE) +
+        scale_fill_hue() +
+        theme_bw() +
+        theme(axis.title.y = element_blank()) +
+        theme(axis.title.x = element_blank()) +
+        scale_x_discrete(limits=rev(top_22$ComplaintType))
+#ggsave("barchart.png", dpi=72, width=10.02, height=7.725)
+ggsave("barchart.png")
