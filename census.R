@@ -6,9 +6,6 @@ libs <- c("dplyr","ggmap","ggplot2","ggthemes","maps","maptools","RColorBrewer",
 x <- sapply(libs,function(x)if(!require(x,character.only = T)) install.packages(x))
 rm(x,libs)
 
-#run App
-##shiny::runGitHub("Elections","yonicd",subdir="shiny")
-
 ## Read and clean poverty data
 setwd("~/Columbia/nyc-311/DATA")
 poverty <- read.csv("nyc_poverty_2013.csv", header=TRUE, stringsAsFactors=FALSE)
