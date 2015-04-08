@@ -4,21 +4,166 @@ title:  "What a Million Calls to 311 Reveal About New York"
 date:   2015-03-24 14:23:00
 categories: data analysis nyc 311
 ---
-You may have seen the image below in Wired magazine or at the Museum of Modern Art in Manhattan.  Although its title references "100 million calls", it is based on one week of calls placed during September 2010.  The image is beautiful, showing how complaint types changed depending on the time of day.  I wanted to know more, such as how complaints varied by neighborhood and how calls from poor neighborhoods compared with those from wealthier ones.
+You may have seen the image below in Wired magazine or at the Museum of Modern Art in Manhattan.  The Wired article was called "What A Hundred Million Calls to 311 Reveal About New York".  Stream graphs first gained attention in 2008 when The New York Times published [Ebb and Flow of Movies:  Box Office Receipts Over past 20 Years](http://www.nytimes.com/interactive/2008/02/23/movies/20080223_REVENUE_GRAPHIC.html).  There has been debate over them ever since.  Aesthetically very appealing and
+they draw people in but some have questioned just how legible they are.  In his blog [Visualizing Data](http://www.visualisingdata.com/index.php/2010/08/making-sense-of-streamgraphs/), Andy Kirk looked into the history of stream graphs and examined the polarized response to them.  In this case, looking at the graph made me want to know more, such as how complaints vary by neighborhood and how calls from poor neighborhoods compare with those from wealthier ones.   In order to do that I would have to obtain more data.
 <br /><br />
 ![Wired image]({{ site.baseurl }}/assets/wired311.jpg)
 <br /><br />
-I used 311 data from 2013 and aligned it with poverty statistics from the 2013 3-year American Community Survey. Census data and 311 data do not line up exactly because the census uses "census tracts" and 311 data is provided by zip code and GPS coordinates.  However a GIS expert at Baruch CUNY has done the work of assigning NYC zip codes to census boundaries based on a number of factors.  For more information on this, refer to the excellent "Finding NYC Neighborhood Census Data" listed below.    
+Source:
+[http://www.wired.com/2010/11/ff_311_new_york](http://www.wired.com/2010/11/ff_311_new_york)
+
+<br /><br />
+
+###Step 1:  Understanding the data
+I wanted to include data for a full year and see if I could link it to poverty statistics from the most recent (2013) 3-year American Community Survey. Census data and 311 data do not line up exactly because the Census Bureau uses "census tracts" and 311 data is provided by zip code and GPS coordinates.  However a geographer at Baruch CUNY has done the work of assigning NYC zip codes to census boundaries based on a number of factors.  For more information on this, refer to the excellent "Finding NYC Neighborhood Census Data" listed below.<br >
+
+<br />Data sources:<br />
+
+[NYC OpenData](https://nycopendata.socrata.com/Social-Services/311-Service-Requests-from-2010-to-Present/erm2-nwe9)<br />
+[Reformatted ACS poverty data]({{ site.baseurl }}/assets/nyc_poverty_2013.csv)<br />
+[Zip code-to-PUMA ID mapping]({{ site.baseurl }}/assets/nyc_zcta10_to_puma10.csv)<br />
+
+<br /><br />
+
+###Step 2:  Sketch something
+After working with the data and confirming that I could link it, I drew some rough sketches.<br />
+
+![sketch 1]({{ site.baseurl }}/assets/sketch1.png)
+![sketch 2]({{ site.baseurl }}/assets/sketch2.png)
+
+<br /><br />
+
+###Step 3:  Code, test, rinse, repeat...
+
+Build a simple bar chart showing the top calls to 311 over a one year period<br />
+![Summary of top complaints]({{ site.baseurl }}/assets/barchart.png)<br />
+
+
+    by_ct <- group_by( data, ComplaintType )
+    ct1   <- summarize( by_ct, n=sum(n) )
+    top_complaints <- filter( ct1, n > 17000 )
+    top_22 <- inner_join(ct1, top_complaints, by="ComplaintType")
+    names(top_22)[2] <- "n"
+    top_22[,3] <- NULL
+    top_22 <- top_22[order(desc(top_22$n)),]
+    ggplot(data=top_22, aes(x=ComplaintType, y=n, fill=ComplaintType, width=2)) +
+        geom_bar(width=0.8, stat="identity", position=position_dodge(width=0.40)) +
+        coord_flip() +
+        guides(fill=FALSE) +
+        scale_fill_hue() +
+        theme_bw() +
+        theme(axis.title.y = element_blank()) +
+        theme(axis.title.x = element_blank()) +
+        scale_x_discrete(limits=rev(top_22$ComplaintType))
+
+
+<br /><br />
+
+Make a map showing poverty levels by neighborhood.  Then build a heatmap of 311 calls by poverty level, based on location of the caller.<br />
+
+![Complaints by poverty level]({{ site.baseurl }}/assets/complaints_by_level.png)<br />
+[Click to enlarge]({{ site.baseurl }}/assets/complaints_by_level.png)
 <br />
-![Complaints by community district]({{ site.baseurl }}/assets/complaints_by_cd.png)
-<br />
-![Complaints by poverty level]({{ site.baseurl }}/assets/complaints_by_level.png)
-<br /> 
-![Poverty level by community]({{ site.baseurl }}/assets/povertymap.png)
-<br /><br /><br />
-Data:  NYC Open Data, American Community Survey
-<br />
-Shapefiles:  GeoData@Columbia, culspatial.cul.columbia.edu
-<br />
-References:  Finding NYC Neighborhood Census Data:  http://guides.newman.baruch.cuny.edu/ld.php?content_id=7154885, Frank Donnelly, September 2, 2014
+
+
+    census_tracts <- readOGR(dsn=".","Columbia_nyct2010ids")
+    nyc_shapes <- spTransform(census_tracts, CRS("+proj=longlat + datum=WGS84"))
+    nycmap_df <- fortify(nyc_shapes)
+    map_data  <- data.frame(id=rownames(nyc_shapes@data),
+                        PUMA_ID=nyc_shapes@data$puma,
+                        GEO_ID=nyc_shapes@data$geoid )
+    map_data  <- merge(map_data, poverty_data, by="PUMA_ID")
+    map_df    <- merge(nycmap_df, map_data, by="id")
+    setwd("~/Columbia/nyc-311")
+    pdf(file="map1.pdf", height=8.77)
+    qmap('new york, ny', zoom=11, maptype='roadmap', color='bw', legend='topleft') +
+        geom_polygon(aes(long, lat, group=id, fill=FamBwPvP),
+                     data=map_df, alpha=.9) +
+        ggtitle("Poverty in New York City") +
+        scale_fill_gradientn("% of People\nLiving Below\nPoverty Level", colours=brewer.pal(4,"GnBu"), na.value="grey20", guide="colourbar") +
+        theme(plot.title = element_text(size=16, face="bold"))
+
+    by_pvcat <- group_by( data, PvCategory, ComplaintType )
+    s1 <- summarize( by_pvcat, n=sum(n) )
+    t1 <- melt(s1)
+    t2 <- cast(t1, ComplaintType ~ PvCategory, sum, margins=TRUE)
+    names(t2)[ncol(t2)] <- "Total"
+    t3 <- filter(t2, Total > 16000)
+    t4 <- t3[order(desc(t3$Total)),]
+    t4 <- t4[-1,]
+    row.names(t4) <- t4$ComplaintType
+    t4 <- t4[,-1]
+    t4 <- t4[,-ncol(t4)]
+    data_matrix <- data.matrix(scale(t4))
+    pdf("heatmap_lvl.pdf", width=10, height=12)
+    heatmap.2(data_matrix,
+          Rowv=NA, Colv=NA,
+          dendrogram='none',
+          scale='none',
+          col=brewer.pal(9,"Blues"),
+          main="What A Million Calls to 311 \nReveal About New York",
+          key=FALSE,
+          keysize=1,
+          srtCol=0,
+          trace='none',
+          offsetRow = 0.5,
+          offsetCol = 0.5,
+          margins=c(5,12),
+          xlab="\nPoverty level based on community district of caller",
+          ylab=NULL,
+          colsep,
+          rowsep,
+          sepcolor='white',
+          sepwidth=c(0.1,0.1))
+
+
+<br /><br />
+Build a heatmap of the top complaints by community district<br />
+
+![Poverty level by community]({{ site.baseurl }}/assets/complaints_by_cd.png)<br />
+[Click to enlarge]({{ site.baseurl }}/assets/complaints_by_cd.png)<br />
+
+
+    by_dc <- group_by( data, CD_Name, ComplaintType )
+    s1 <- summarize( by_dc, n=sum(n) )
+    t1 <- melt(s1)<br />
+    t2 <- cast(t1, ComplaintType ~ CD_Name, sum, margins=TRUE)
+    names(t2)[ncol(t2)] <- "Total"
+    t3 <- filter(t2, Total > 5000)
+    t4 <- t3[order(desc(t3$Total)),]
+    t4 <- t4[-1,]
+    row.names(t4) <- t4$ComplaintType
+    t4 <- t4[,-1]
+    t4 <- t4[,-ncol(t4)]
+    data_matrix <- data.matrix(scale(t4))
+    heatmap.2(data_matrix,
+          Rowv=NA, Colv=NA,
+          dendrogram='none',
+          scale='none',
+          col=brewer.pal(9,"Blues"),
+          #main="311 Calls by Community",
+          key=FALSE,
+          keysize=1,
+          trace='none',
+          offsetRow = 0.5,
+          offsetCol = 0.5,
+          margins=c(16,12),
+          #margins=c(12,5),
+          xlab=NULL,
+          ylab=NULL)
+
+
+<br /><br />
+
+###Step 4:  Adjust labels and titles
+I created pdf files and brought them into Illustrator where I could work on the labels, adjust the title location, and make the heatmap grid lines more prominent.
+<br /><br />
+Code for this project is available on GitHub at [https://github.com/jcp1016/nyc-311](https://github.com/jcp1016/nyc-311)
+<br /><br />
+
+###References
+
+(1) Finding NYC Neighborhood Census Data:  [http://guides.newman.baruch.cuny.edu/ld.php?content_id=7154885](http://guides.newman.baruch.cuny.edu/ld.php?content_id=7154885), Frank Donnelly, September 2, 2014<br />
+(2) Tufte, Edward R. The Visual Display of Quantitative Information. Cheshire, Conn. (Box 430, Cheshire 06410): Graphics, 1983. Print.<br />
+(3) Yau, Nathan. Visualize This: The FlowingData Guide to Design, Visualization, and Statistics. Indianapolis, Ind.: Wiley Pub., 2011. Print.<br />
 
