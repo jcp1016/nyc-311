@@ -1,19 +1,20 @@
-## Setup
-setwd("~/Columbia/nyc-311")
+## This script reads a dataset that was extracted from the 2013 ACS.
 
 libs <- c("dplyr","ggmap","ggplot2","ggthemes","maps","maptools","RColorBrewer","rgdal","rgeos",
-          "sp","shiny","shinyAce","httr","XML","stringr","ggplot2","scales","plyr","reshape2")
+          "sp","scales","plyr","reshape2")
 x <- sapply(libs,function(x)if(!require(x,character.only = T)) install.packages(x))
 rm(x,libs)
 
 ## Read and clean poverty data
 setwd("~/Columbia/nyc-311/DATA")
 poverty <- read.csv("nyc_poverty_2013.csv", header=TRUE, stringsAsFactors=FALSE)
-for (i in 1:ncol(poverty)) { names(poverty)[i] <- poverty[1,i] }
+for (i in 1:ncol(poverty))
+        names(poverty)[i] <- poverty[1,i]
 xvals <- which(poverty[2,] == "(X)")
 poverty_data <- poverty[-1,-xvals]
 poverty_data$PUMA_ID <- as.factor(poverty_data$PUMA_ID)
-for (i in 5:42) {poverty_data[,i] <- as.numeric(poverty_data[,i])}
+for (i in 5:42)
+        poverty_data[,i] <- as.numeric(poverty_data[,i])
 
 ## Get map shapes for census tracts
 setwd("~/Columbia/nyc-311/DATA/OGPDownload-4")
@@ -29,8 +30,6 @@ map_data  <- merge(map_data, poverty_data, by="PUMA_ID")
 map_df    <- merge(nycmap_df, map_data, by="id")
 
 ## Make plots
-setwd("~/Columbia/nyc-311")
-pdf(file="map1.pdf", height=8.77)
 qmap('new york, ny', zoom=11, maptype='roadmap', color='bw', legend='topleft') +
         geom_polygon(aes(long, lat, group=id, fill=FamBwPvP),
                      data=map_df, alpha=.9) +
@@ -38,7 +37,6 @@ qmap('new york, ny', zoom=11, maptype='roadmap', color='bw', legend='topleft') +
         scale_fill_gradientn("% of People\nLiving Below\nPoverty Level", colours=brewer.pal(4,"GnBu"), na.value="grey20", guide="colourbar") +
         theme(plot.title = element_text(size=16, face="bold"))
 #ggsave("map1.png", dpi=72, width=10.02, height=7.725)
-dev.off()
 
 qmap('new york, ny', zoom=11, maptype='roadmap', color='bw', legend='topleft') +
         geom_polygon(aes(long, lat, group=group, fill=FCU18BwPvP),
@@ -46,7 +44,7 @@ qmap('new york, ny', zoom=11, maptype='roadmap', color='bw', legend='topleft') +
         ggtitle("Poverty in New York City") +
         scale_fill_gradientn("% of Children (U18)\nLiving Below\nPoverty Level", colours=c("white", brewer.pal(5,"YlOrRd")), na.value="grey20", guide="colourbar") +
         theme(plot.title = element_text(size=16, face="bold"))
-ggsave("map2.png", dpi=72, width=10.02, height=7.725)
+##ggsave("map2.png", dpi=72, width=10.02, height=7.725)
 
 qmap('new york, ny', zoom=11, maptype='roadmap', color='bw', legend='topleft') +
         geom_polygon(aes(long, lat, group=group, fill=P65plBwPvP),
@@ -54,4 +52,4 @@ qmap('new york, ny', zoom=11, maptype='roadmap', color='bw', legend='topleft') +
         ggtitle("Poverty in New York City") +
         scale_fill_gradientn("% of Elderly (O65)\nLiving Below\nPoverty Level", colours=c("white", brewer.pal(5,"YlOrRd")), na.value="grey20", guide="colourbar") +
         theme(plot.title = element_text(size=16, face="bold"))
-ggsave("map3.png", dpi=72, width=10.02, height=7.725)
+##ggsave("map3.png", dpi=72, width=10.02, height=7.725)
