@@ -1,4 +1,6 @@
 _site/
 .sass-cache/
 .DATA/ 
+.RData
+.Rhistory
 *.png
