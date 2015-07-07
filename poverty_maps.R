@@ -1,7 +1,9 @@
-## This script reads a dataset that was extracted from the 2013 ACS and generates static choropleth maps.
+## This script reads a dataset that was extracted from the 2013 ACS and generates interactive
+## choropleth maps.
 
-libs <- c("dplyr","ggmap","ggplot2","ggthemes","maps","maptools","RColorBrewer","rgdal","rgeos",
-          "sp","scales","plyr","reshape2")
+#libs <- c("dplyr","ggmap","ggplot2","ggthemes","maps","maptools","RColorBrewer","rgdal","rgeos",
+#          "sp","scales","plyr","reshape2","leaflet")
+libs <- c("dplyr", "sp", "rgdal", "maps", "reshape2", "ggplot2", "leaflet")
 x <- sapply(libs,function(x)if(!require(x,character.only = T)) install.packages(x))
 rm(x,libs)
 
@@ -26,10 +28,11 @@ nycmap_df <- fortify(nyc_shapes)
 map_data  <- data.frame(id=rownames(nyc_shapes@data),
                         PUMA_ID=nyc_shapes@data$puma,
                         GEO_ID=nyc_shapes@data$geoid )
-map_data  <- merge(map_data, poverty_data, by="PUMA_ID")
-map_df    <- merge(nycmap_df, map_data, by="id")
+map_data <- merge(map_data, poverty_data, by="PUMA_ID")
+map_df   <- merge(nycmap_df, map_data, by="id")
 
-## Make plots
+
+## Make static plots
 qmap('new york, ny', zoom=11, maptype='roadmap', color='bw', legend='topleft') +
         geom_polygon(aes(long, lat, group=id, fill=FamBwPvP),
                      data=map_df, alpha=.9) +
@@ -53,3 +56,6 @@ qmap('new york, ny', zoom=11, maptype='roadmap', color='bw', legend='topleft') +
         scale_fill_gradientn("% of Elderly (O65)\nLiving Below\nPoverty Level", colours=c("white", brewer.pal(5,"YlOrRd")), na.value="grey20", guide="colourbar") +
         theme(plot.title = element_text(size=16, face="bold"))
 ##ggsave("map3.png", dpi=72, width=10.02, height=7.725)
+
+## Make interactive plots
+
