@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>What a million calls to 311 reveal about New York</title>
+	<meta charset="utf-8" />
+
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+	<link rel="stylesheet" href="http://cdn.leafletjs.com/leaflet-0.7.3/leaflet.css" />
+
+	<style>
+		#map {
+			width: 800px;
+			height: 500px; 
+		}
+
+		.info {
+			padding: 6px 8px;
+			font: 14px/16px Arial, Helvetica, sans-serif;
+			background: white;
+			background: rgba(255,255,255,0.8);
+			box-shadow: 0 0 15px rgba(0,0,0,0.2);
+			border-radius: 5px;
+		}
+		.info h4 {
+			margin: 0 0 5px;
+			color: #777;
+		}
+
+		.legend {
+			text-align: left;
+			line-height: 18px;
+			color: #555;
+		}
+		.legend i {
+			width: 18px;
+			height: 18px;
+			float: left;
+			margin-right: 8px;
+			opacity: 1;
+		}
+	</style>
+</head>
+<body>
+	<div id="map"></div>
+
+    <script type="text/javascript" src="http://cdn.leafletjs.com/leaflet-0.7.3/leaflet.js"></script>
+	<script type="text/javascript" src="../DATA/polygons.js"></script>
+	<script type="text/javascript" src="https://www.google.com/jsapi"></script>
+	
+	<script type="text/javascript">
+
+		var map = L.map('map').setView([40.73269, -73.962021], 10);
+
+		L.tileLayer('http://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png', {
+	    attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="http://cartodb.com/attributions">CartoDB</a>',
+	    subdomains: 'abcd',
+	    maxZoom: 19
+        }).addTo(map);
+
+		// control that shows neighborhood info on hover
+		var info = L.control();
+
+		info.onAdd = function (map) {
+			this._div = L.DomUtil.create('div', 'info');
+			this.update();
+			return this._div;
+		};
+
+		info.update = function (props) {
+			this._div.innerHTML = (props ? 
+				'<h4>' + props.CD_Name + '</h4>' + props.FamBwPvP + 
+				'% of households earn below poverty level' +
+				'<br/><br/><h4>Top Complaints</h4>' +
+				'<table>' +
+				    '<tr><td>' + props.ComplaintType1 + '</td><td>' + props.CallPct1 + '%</td></tr>' +
+				    '<tr><td>' + props.ComplaintType2 + '</td><td>' + props.CallPct2 + '%</td></tr>' +
+				    '<tr><td>' + props.ComplaintType3 + '</td><td>' + props.CallPct3 + '%</td></tr>' +
+				    '<tr><td>' + props.ComplaintType4 + '</td><td>' + props.CallPct4 + '%</td></tr>' +
+				    '<tr><td>' + props.ComplaintType5 + '</td><td>' + props.CallPct5 + '%</td></tr>' +
+			    '</table>'
+				: 'Hover over a neighborhood');
+		};
+
+		info.addTo(map);
+
+		// get color depending on ACS FamBwPvP value
+		function getColor(d) {
+			return d > 40  ? '#54278f' :
+			       d > 30  ? '#756bb1' :
+			       d > 20  ? '#9e9ac8' :
+			       d > 10  ? '#cbc9e2' :
+			                 '#f2f0f7' ;
+		}
+
+		function style(feature) {
+			return {
+				weight: 0.5,
+				opacity: 1,
+				color: '#666',
+				dashArray: '',
+				fillOpacity: 1,
+				fillColor: getColor(feature.properties.FamBwPvP)
+			};
+		}
+
+		function highlightFeature(e) {
+			var layer = e.target;
+
+			layer.setStyle({
+				/* weight: 3,
+				color: '#666',
+				dashArray: '',
+				fillOpacity: 1 */
+			});
+
+			if (!L.Browser.ie && !L.Browser.opera) {
+				layer.bringToFront();
+			}
+
+			info.update(layer.feature.properties);
+		}
+
+		var geojson;
+
+		function resetHighlight(e) {
+			geojson.resetStyle(e.target);
+			info.update();
+		}
+
+		function zoomToFeature(e) {
+			map.fitBounds(e.target.getBounds());
+		}
+
+		function onEachFeature(feature, layer) {
+			layer.on({
+				mouseover: highlightFeature,
+				mouseout: resetHighlight,
+				click: zoomToFeature
+			});
+		}
+		
+		geojson = L.geoJson(pumaData, {
+			style: style,
+			onEachFeature: onEachFeature
+		}).addTo(map);
+
+		map.attributionControl.addAttribution('2013 3-year ACS data &copy; <a href="http://census.gov/">US Census Bureau</a>');
+        map.attributionControl.addAttribution('311 data &copy; <a href="https://data.cityofnewyork.us/Social-Services/311-Service-Requests-from-2010-to-Present/erm2-nwe9">NYC OpenData</a>');
+
+
+		var legend = L.control({position: 'bottomright'});
+
+		legend.onAdd = function (map) {
+
+			var div = L.DomUtil.create('div', 'info legend'),
+				grades = [0, 10, 20, 30, 40],
+				labels = ["% below poverty level"],
+				from, to;
+
+			for (var i = 0; i < grades.length; i++) {
+				from = grades[i];
+				to = grades[i + 1];
+
+				labels.push(
+					'<i style="background:' + getColor(from + 1) + '"></i> ' +
+					from + (to ? '&ndash;' + to : '+'));
+			}
+
+			div.innerHTML = labels.join('<br>');
+			return div;
+		};
+
+		legend.addTo(map);
+
+	</script>
+</body>
+</html>
+
+

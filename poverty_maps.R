@@ -1,11 +1,15 @@
-## This script reads a dataset that was extracted from the 2013 ACS and generates interactive
-## choropleth maps.
-
-#libs <- c("dplyr","ggmap","ggplot2","ggthemes","maps","maptools","RColorBrewer","rgdal","rgeos",
-#          "sp","scales","plyr","reshape2","leaflet")
-libs <- c("dplyr", "sp", "rgdal", "maps", "reshape2", "ggplot2", "leaflet")
-x <- sapply(libs,function(x)if(!require(x,character.only = T)) install.packages(x))
-rm(x,libs)
+##---------------------------------------------------------------------------------
+## This script links 2013 3-year ACS data with 2013 NYC 311 data and  
+## generates an interactive choropleth map.
+## Author:  Janet Prumachuk
+##---------------------------------------------------------------------------------
+rm(list=ls())
+require(rgdal)
+require(rgeos)
+require(maptools)
+require(dplyr)
+require(sp)
+require(leaflet)
 
 ## Read and clean poverty data
 setwd("~/Columbia/nyc-311/DATA")
@@ -14,48 +18,61 @@ for (i in 1:ncol(poverty))
         names(poverty)[i] <- poverty[1,i]
 xvals <- which(poverty[2,] == "(X)")
 poverty_data <- poverty[-1,-xvals]
-poverty_data$PUMA_ID <- as.factor(poverty_data$PUMA_ID)
-for (i in 5:42)
-        poverty_data[,i] <- as.numeric(poverty_data[,i])
+poverty_data <- poverty_data[,c(2,4,5)]
+poverty_data$puma <- as.factor(poverty_data$PUMA_ID)
+poverty_data[,3] <- as.numeric(poverty_data[,3])
+poverty_data$FamPvCat <- cut(poverty_data$FamBwPvP, 
+                             breaks=c(0,10,20,30,40,50), 
+                             labels=c( "(0-10%)", "[10-20%)","[20-30%)", "[30-40%)", "[40-50%)" ), 
+                             include.lowest=TRUE)
 
-## Get map shapes for census tracts
+## Get map shapes for New York census tracts
 setwd("~/Columbia/nyc-311/DATA/OGPDownload-4")
 census_tracts <- readOGR(dsn=".","Columbia_nyct2010ids")
-nyc_shapes <- spTransform(census_tracts, CRS("+proj=longlat + datum=WGS84"))
+census_tracts <- census_tracts[substring(census_tracts$geoid, 1, 2) == "36",]
 
-## Merge map shapes with poverty data
-nycmap_df <- fortify(nyc_shapes)
-map_data  <- data.frame(id=rownames(nyc_shapes@data),
-                        PUMA_ID=nyc_shapes@data$puma,
-                        GEO_ID=nyc_shapes@data$geoid )
-map_data <- merge(map_data, poverty_data, by="PUMA_ID")
-map_df   <- merge(nycmap_df, map_data, by="id")
+## Transform to EPS 4326 - WSG84 (required)
+nyc_shapes <- spTransform(census_tracts, CRS("+init=epsg:4326"))
 
+## Join map with poverty data
+nyc_shapes@data <- data.frame(nyc_shapes@data, poverty_data[match(nyc_shapes@data$puma, poverty_data$puma),])
 
-## Make static plots
-qmap('new york, ny', zoom=11, maptype='roadmap', color='bw', legend='topleft') +
-        geom_polygon(aes(long, lat, group=id, fill=FamBwPvP),
-                     data=map_df, alpha=.9) +
-        ggtitle("Poverty in New York City") +
-        scale_fill_gradientn("% of People\nLiving Below\nPoverty Level", colours=brewer.pal(4,"GnBu"), na.value="grey20", guide="colourbar") +
-        theme(plot.title = element_text(size=16, face="bold"))
-#ggsave("map1.png", dpi=72, width=10.02, height=7.725)
+# Unite the shapes at puma level
+pumas <- unionSpatialPolygons(nyc_shapes, nyc_shapes@data$puma)
+nyc_shapes_data <- nyc_shapes@data
+puma_data <- unique(nyc_shapes_data[,c(9,17,18,20)])
+puma_data <- arrange(puma_data, puma)
+row.names(puma_data) <- sapply(slot(pumas, "polygons"), function(x) slot(x, "ID"))
+puma_df <- SpatialPolygonsDataFrame(pumas, data=puma_data)
 
-qmap('new york, ny', zoom=11, maptype='roadmap', color='bw', legend='topleft') +
-        geom_polygon(aes(long, lat, group=group, fill=FCU18BwPvP),
-                     data=map_df, alpha=.9) +
-        ggtitle("Poverty in New York City") +
-        scale_fill_gradientn("% of Children (U18)\nLiving Below\nPoverty Level", colours=c("white", brewer.pal(5,"YlOrRd")), na.value="grey20", guide="colourbar") +
-        theme(plot.title = element_text(size=16, face="bold"))
-##ggsave("map2.png", dpi=72, width=10.02, height=7.725)
+# Format the map popups
+m_pop <- paste0("<strong>", 
+                puma_df@data$CD_Name,
+                "</strong><br />",
+                puma_df@data$FamBwPvP,
+                "% ",
+                "earned below poverty level.")
 
-qmap('new york, ny', zoom=11, maptype='roadmap', color='bw', legend='topleft') +
-        geom_polygon(aes(long, lat, group=group, fill=P65plBwPvP),
-                     data=map_df, alpha=.9) +
-        ggtitle("Poverty in New York City") +
-        scale_fill_gradientn("% of Elderly (O65)\nLiving Below\nPoverty Level", colours=c("white", brewer.pal(5,"YlOrRd")), na.value="grey20", guide="colourbar") +
-        theme(plot.title = element_text(size=16, face="bold"))
-##ggsave("map3.png", dpi=72, width=10.02, height=7.725)
+pal <- colorFactor("Purples", NULL, n=5)
 
-## Make interactive plots
+m <- leaflet() %>%
+        #addTiles() %>%
+        addProviderTiles("CartoDB.Positron") %>%
+        addPolygons(data=puma_df,
+                fillColor = ~pal(puma_df@data$FamPvCat),
+                fillOpacity = 1,
+                weight = 0.5,
+                color = "black",
+                stroke = TRUE,
+                #dashArray = "3",
+                popup = m_pop) %>%
+        addControl(html="<b>Percentage of Households Earning Below Poverty Level</b> <br />Click on a neighborhood",
+                   position = "topright") %>%
+        addLegend("topright", 
+              pal = pal, 
+              values = puma_df@data$FamPvCat,
+              #title = "Percentage of Households Below Poverty Level",
+              opacity = 1) %>%
+        setView(-73.860161, 40.759741, zoom = 10)
 
+m

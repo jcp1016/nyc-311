@@ -1,5 +1,5 @@
 
-#nyc311_df <- read.csv("~/DATA/311_Service_Requests_from_2010_to_Present.csv", stringsAsFactors=FALSE)
+nyc311_df <- read.csv("~/DATA/311_Service_Requests_from_2010_to_Present.csv", stringsAsFactors=FALSE)
 names(nyc311_df)[6] <- "ComplaintType"
 names(nyc311_df)[9] <- "Zipcode"
 
@@ -51,7 +51,7 @@ by_cat <- group_by( nyc311_df, PUMA_ID, ComplaintType )
 nyc311_cat <- summarize( by_cat, n=n() )
 
 ## Merge aggregated complaints with poverty stats by PUMA ID
-data <- merge(nyc311_cat, poverty_all_df, by="PUMA_ID")
+data <- merge(nyc311_cat, poverty_data, by="PUMA_ID")
 names(data)[6] <- "PvCategory"
 
 ## Build heatmap by poverty level
@@ -129,12 +129,13 @@ dev.off()
 ## To remake the Wired chart, limit results to the top 22 complaint types
 setwd("~/Columbia/nyc-311")
 by_ct <- group_by( data, ComplaintType )
-ct1   <- summarize( by_ct, n=sum(n) )
+ct1   <- summarize( by_ct, n=n() )
 top_complaints <- filter( ct1, n > 17000 )
 top_22 <- inner_join(ct1, top_complaints, by="ComplaintType")
 names(top_22)[2] <- "n"
 top_22[,3] <- NULL
 top_22 <- top_22[order(desc(top_22$n)),]
+
 ggplot(data=top_22, aes(x=ComplaintType, y=n, fill=ComplaintType, width=2)) +
         geom_bar(width=0.8, stat="identity", position=position_dodge(width=0.40)) +
         coord_flip() +
@@ -147,6 +148,6 @@ ggplot(data=top_22, aes(x=ComplaintType, y=n, fill=ComplaintType, width=2)) +
 #ggsave("barchart.png", dpi=72, width=10.02, height=7.725)
 ggsave("barchart.png")
 
-
+require(googleVis)
 bar <- gvisBarChart(data=top_22, xvar=ComplaintType, yvar=n, options=list(bars='vertical'))
 plot(bar)
