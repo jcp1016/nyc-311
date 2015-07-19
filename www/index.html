@@ -11,7 +11,11 @@
 	<style>
 		#map {
 			width: 800px;
-			height: 500px; 
+			height: 500px;
+		}
+
+		html, body, #map {
+			width:  98%;
 		}
 
 		.info {
@@ -21,6 +25,7 @@
 			background: rgba(255,255,255,0.8);
 			box-shadow: 0 0 15px rgba(0,0,0,0.2);
 			border-radius: 5px;
+			color: #555;
 		}
 		.info h4 {
 			margin: 0 0 5px;
@@ -47,7 +52,7 @@
     <script type="text/javascript" src="http://cdn.leafletjs.com/leaflet-0.7.3/leaflet.js"></script>
 	<script type="text/javascript" src="../DATA/polygons.js"></script>
 	<script type="text/javascript" src="https://www.google.com/jsapi"></script>
-	
+
 	<script type="text/javascript">
 
 		var map = L.map('map').setView([40.73269, -73.962021], 10);
@@ -68,10 +73,10 @@
 		};
 
 		info.update = function (props) {
-			this._div.innerHTML = (props ? 
-				'<h4>' + props.CD_Name + '</h4>' + props.FamBwPvP + 
+			this._div.innerHTML = (props ?
+				'<h4>' + props.CD_Name + '</h4>' + props.FamBwPvP +
 				'% of households earn below poverty level' +
-				'<br/><br/><h4>Top Complaints</h4>' +
+				'<br/><br/><h4>Top Complaints to 311</h4>' +
 				'<table>' +
 				    '<tr><td>' + props.ComplaintType1 + '</td><td>' + props.CallPct1 + '%</td></tr>' +
 				    '<tr><td>' + props.ComplaintType2 + '</td><td>' + props.CallPct2 + '%</td></tr>' +
@@ -79,7 +84,7 @@
 				    '<tr><td>' + props.ComplaintType4 + '</td><td>' + props.CallPct4 + '%</td></tr>' +
 				    '<tr><td>' + props.ComplaintType5 + '</td><td>' + props.CallPct5 + '%</td></tr>' +
 			    '</table>'
-				: 'Hover over a neighborhood');
+				: 'Hover over a New York City neighborhood');
 		};
 
 		info.addTo(map);
@@ -139,7 +144,7 @@
 				click: zoomToFeature
 			});
 		}
-		
+
 		geojson = L.geoJson(pumaData, {
 			style: style,
 			onEachFeature: onEachFeature

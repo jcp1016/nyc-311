@@ -1,6 +1,6 @@
 ##---------------------------------------------------------------------------------
-## This script links 2013 3-year ACS data with 2013 NYC 311 data and  
-## generates geoJSON file for use in an interactive choropleth map   
+## This script links 2013 3-year ACS data with 2013 NYC 311 data and
+## generates geoJSON file for use in an interactive choropleth map
 ##
 ##---------------------------------------------------------------------------------
 #rm(list=ls())
@@ -20,10 +20,11 @@ xvals <- which(poverty[2,] == "(X)")
 poverty_data <- poverty[-1,-xvals]
 poverty_data <- poverty_data[,c(2,4,5)]
 poverty_data$puma <- as.factor(poverty_data$PUMA_ID)
-poverty_data[,3] <- as.numeric(poverty_data[,3])
-poverty_data$FamPvCat <- cut(poverty_data$FamBwPvP, 
-                             breaks=c(0,10,20,30,40,50), 
-                             labels=c( "(0-10%)", "[10-20%)","[20-30%)", "[30-40%)", "[40-50%)" ), 
+poverty_data$FamBwPvP <- as.numeric(poverty_data[,3])
+poverty_data$FamBwPvP <- round(poverty_data$FamBwPvP, digits=0)
+poverty_data$FamPvCat <- cut(poverty_data$FamBwPvP,
+                             breaks=c(0,10,20,30,40,50),
+                             labels=c( "(0-10%)", "[10-20%)","[20-30%)", "[30-40%)", "[40-50%)" ),
                              include.lowest=TRUE)
 
 ## Read and clean 311 data
@@ -31,7 +32,7 @@ poverty_data$FamPvCat <- cut(poverty_data$FamBwPvP,
 names(nyc311_df)[6] <- "ComplaintType"
 names(nyc311_df)[9] <- "Zipcode"
 
-## Attach PUMA IDs to 311 data based on a lookup table
+## Attach PUMA IDs to 311 data based on a zip code to PUMA mapping table
 require("qdapTools")
 setwd("~/Columbia/nyc-311/DATA")
 zipcode_to_puma <- read.csv("nyc_zcta10_to_puma10.csv", stringsAsFactors=FALSE)
@@ -71,7 +72,7 @@ by_puma <- group_by( nyc311_df, PUMA_ID)
 ptotal <- summarize( by_puma, n=n() )
 names(ptotal)[2] <- "TotalCalls"
 data <- merge(data, ptotal, by="PUMA_ID")
-data$CallPct <- round((data$NumCalls / data$TotalCalls) * 100, digits=1)
+data$CallPct <- round((data$NumCalls / data$TotalCalls) * 100, digits=0)
 data <- arrange(data, PUMA_ID, desc(CallPct))
 
 ## Keep top 5 call categories by PUMA and combine with poverty data
@@ -84,9 +85,9 @@ p <- as.vector(unique(tc$PUMA_ID))
 complaint_data <- data.frame(stringsAsFactors=FALSE)
 for (i in 1:length(p)) {
     puma_rows  <- data.frame(filter(tc, PUMA_ID == p[i]), stringsAsFactors=FALSE)
-    tmp_df <- data.frame(p[i], puma_rows[1,c(2,3)], puma_rows[2,c(2,3)], puma_rows[3,c(2,3)], 
+    tmp_df <- data.frame(p[i], puma_rows[1,c(2,3)], puma_rows[2,c(2,3)], puma_rows[3,c(2,3)],
                          puma_rows[4,c(2,3)], puma_rows[5,c(2,3)], stringsAsFactors=FALSE)
-    names(tmp_df) <- c("PUMA_ID", "ComplaintType1", "CallPct1", "ComplaintType2", "CallPct2", 
+    names(tmp_df) <- c("PUMA_ID", "ComplaintType1", "CallPct1", "ComplaintType2", "CallPct2",
                        "ComplaintType3", "CallPct3", "ComplaintType4", "CallPct4", "ComplaintType5", "CallPct5")
     complaint_data <- rbind(complaint_data, tmp_df)
     rm(tmp_df)
@@ -109,13 +110,13 @@ nyc_shapes@data <- data.frame(nyc_shapes@data, all_data[match(nyc_shapes@data$pu
 # Unite shapes at puma level
 pumas <- unionSpatialPolygons(nyc_shapes, nyc_shapes@data$puma)
 nyc_shapes_data <- nyc_shapes@data
-puma_data <- unique(nyc_shapes_data[,c(9,17,18,20:26)])
+puma_data <- unique(nyc_shapes_data[,c(9,17,18,20:30)])
 puma_data <- arrange(puma_data, puma)
 row.names(puma_data) <- sapply(slot(pumas, "polygons"), function(x) slot(x, "ID"))
 puma_df <- SpatialPolygonsDataFrame(pumas, data=puma_data)
 
 # Write data to a geoJSON file for a JavaScript version of the map
-setwd("~/Columbia/nyc-311/DATA")
+setwd("~/Columbia/nyc-311/www/scripts")
 jsfile = "pumas.js"
 if (file.exists(jsfile)) {
     file.remove(jsfile)
@@ -134,5 +135,7 @@ close(fileConn)
 system("cat var.txt pumas.js > polygons.js")
 file.remove("pumas.js")
 file.remove("var.txt")
+setwd("../../")
 
 ## Now index.html can be viewed in any browser
+browseURL("www/index.html")
