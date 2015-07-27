@@ -7,53 +7,90 @@
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 	<link rel="stylesheet" href="http://cdn.leafletjs.com/leaflet-0.7.3/leaflet.css" />
+	<!-- Bootstrap CDN -->
+	<link rel="stylesheet" href="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css">
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
+	<script src="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
 
 	<style>
+		html {
+			margin: 0 auto;
+			margin-top: 10px;
+		}
+		#my_container {
+			padding: 15px;
+		}
 		#map {
 			width: 800px;
 			height: 500px;
+			margin: 0 auto;
+			margin-top: 10px;
+			border: 2px solid Gray;
 		}
-
 		html, body, #map {
-			width:  98%;
+			width:  99%;
+			font-family: Arial, Helvetica, sans-serif;
 		}
-
-		.info {
+		.my_inputs {
+			padding: 15px;
+			/* border: 3px solid gray;*/
+			margin: 0 auto;
+			margin-top: 10px;
+			height: 500px;
+			color: #555;
+		}
+		.my_info {
 			padding: 6px 8px;
-			font: 14px/16px Arial, Helvetica, sans-serif;
+			font: 10pt Arial, Helvetica, sans-serif;
 			background: white;
 			background: rgba(255,255,255,0.8);
 			box-shadow: 0 0 15px rgba(0,0,0,0.2);
 			border-radius: 5px;
 			color: #555;
 		}
-		.info h4 {
+		.my_info h5 {
 			margin: 0 0 5px;
 			color: #777;
 		}
 
-		.legend {
+		.my_legend {
 			text-align: left;
 			line-height: 18px;
 			color: #555;
+			font: 10pt Arial, Helvetica, sans-serif;
 		}
-		.legend i {
+		.my_legend i {
 			width: 18px;
 			height: 18px;
 			float: left;
 			margin-right: 8px;
 			opacity: 1;
+			font: 10pt Arial, Helvetica, sans-serif;
 		}
 	</style>
 </head>
-<body>
-	<div id="map"></div>
+<body bgcolor = "white">
+	<div id="my_container">
+		<h4 style="color: #444">Mapping NYC 311 complaints and 3-year ACS poverty statistics</h4>
+		<div id="map"></div>
+		<div class="my_inputs">
+			<b><p>Choose a complaint type</p></b><br/>
+			<b><p>Choose a population</p></b>
+			<br /><button type="button" class="btn btn-success btn-md" onclick="displayDate()">Try it Yourself >></button><br/>
+			<br/><b><p>Save this image</p></b><br/>
+			<p id="demo"></p>
+		</div>
+	</div>
 
     <script type="text/javascript" src="http://cdn.leafletjs.com/leaflet-0.7.3/leaflet.js"></script>
 	<script type="text/javascript" src="../DATA/polygons.js"></script>
 	<script type="text/javascript" src="https://www.google.com/jsapi"></script>
 
 	<script type="text/javascript">
+
+		function displayDate() {
+			document.getElementById("demo").innerHTML = Date();
+		}
 
 		var map = L.map('map').setView([40.73269, -73.962021], 10);
 
@@ -64,30 +101,30 @@
         }).addTo(map);
 
 		// control that shows neighborhood info on hover
-		var info = L.control();
+		var my_info = L.control();
 
-		info.onAdd = function (map) {
-			this._div = L.DomUtil.create('div', 'info');
+		my_info.onAdd = function (map) {
+			this._div = L.DomUtil.create('div', 'my_info');
 			this.update();
 			return this._div;
 		};
 
-		info.update = function (props) {
+		my_info.update = function (props) {
 			this._div.innerHTML = (props ?
-				'<h4>' + props.CD_Name + '</h4>' + props.FamBwPvP +
-				'% of households earn below poverty level' +
-				'<br/><br/><h4>Top Complaints to 311</h4>' +
+				'<b>' + props.CD_Name + '</b><br/>' + 
+				props.FamBwPvP + '% of households earned below poverty level<br/>' +
+				'<br/><b>Top complaints in this neighborhood</b>' +
 				'<table>' +
-				    '<tr><td>' + props.ComplaintType1 + '</td><td>' + props.CallPct1 + '%</td></tr>' +
-				    '<tr><td>' + props.ComplaintType2 + '</td><td>' + props.CallPct2 + '%</td></tr>' +
-				    '<tr><td>' + props.ComplaintType3 + '</td><td>' + props.CallPct3 + '%</td></tr>' +
-				    '<tr><td>' + props.ComplaintType4 + '</td><td>' + props.CallPct4 + '%</td></tr>' +
-				    '<tr><td>' + props.ComplaintType5 + '</td><td>' + props.CallPct5 + '%</td></tr>' +
+				    '<tr><td>' + props.ComplaintType1 + '&nbsp</td><td>' + props.CallPct1 + '%</td></tr>' +
+				    '<tr><td>' + props.ComplaintType2 + '&nbsp</td><td>' + props.CallPct2 + '%</td></tr>' +
+				    '<tr><td>' + props.ComplaintType3 + '&nbsp</td><td>' + props.CallPct3 + '%</td></tr>' +
+				    '<tr><td>' + props.ComplaintType4 + '&nbsp</td><td>' + props.CallPct4 + '%</td></tr>' +
+				    '<tr><td>' + props.ComplaintType5 + '&nbsp</td><td>' + props.CallPct5 + '%</td></tr>' +
 			    '</table>'
-				: 'Hover over a New York City neighborhood');
+				: '<b>Hover over a New York City neighborhood</b>');
 		};
 
-		info.addTo(map);
+		my_info.addTo(map);
 
 		// get color depending on ACS FamBwPvP value
 		function getColor(d) {
@@ -123,14 +160,14 @@
 				layer.bringToFront();
 			}
 
-			info.update(layer.feature.properties);
+			my_info.update(layer.feature.properties);
 		}
 
 		var geojson;
 
 		function resetHighlight(e) {
 			geojson.resetStyle(e.target);
-			info.update();
+			my_info.update();
 		}
 
 		function zoomToFeature(e) {
@@ -154,13 +191,13 @@
         map.attributionControl.addAttribution('311 data &copy; <a href="https://data.cityofnewyork.us/Social-Services/311-Service-Requests-from-2010-to-Present/erm2-nwe9">NYC OpenData</a>');
 
 
-		var legend = L.control({position: 'bottomright'});
+		var my_legend = L.control({position: 'bottomright'});
 
-		legend.onAdd = function (map) {
+		my_legend.onAdd = function (map) {
 
-			var div = L.DomUtil.create('div', 'info legend'),
+			var div = L.DomUtil.create('div', 'my_info my_legend'),
 				grades = [0, 10, 20, 30, 40],
-				labels = ["% below poverty level"],
+				labels = ["<h5>% below poverty level</h5>"],
 				from, to;
 
 			for (var i = 0; i < grades.length; i++) {
@@ -176,7 +213,8 @@
 			return div;
 		};
 
-		legend.addTo(map);
+		my_legend.addTo(map);
+
 
 	</script>
 </body>
