@@ -31,15 +31,15 @@
 			width:  99%;
 			font-family: Arial, Helvetica, sans-serif;
 		}
-		.my_inputs {
-			padding: 15px;
-			/* border: 3px solid gray;*/
-			margin: 0 auto;
-			margin-top: 10px;
-			height: 500px;
-			color: #555;
+		.clear{
+			clear: both;
+			height: 0;
 		}
-		.my_info {
+		.my_inputs {
+			margin-top: 10px;
+			padding-left: 6px;
+		}
+		.info {
 			padding: 6px 8px;
 			font: 10pt Arial, Helvetica, sans-serif;
 			background: white;
@@ -48,38 +48,42 @@
 			border-radius: 5px;
 			color: #555;
 		}
-		.my_info h5 {
-			margin: 0 0 5px;
+		.info h5 {
+		/*	margin: 0 0 5px; */
 			color: #777;
 		}
 
-		.my_legend {
-			text-align: left;
+		.legend {
 			line-height: 18px;
 			color: #555;
-			font: 10pt Arial, Helvetica, sans-serif;
 		}
-		.my_legend i {
+		.legend i {
 			width: 18px;
 			height: 18px;
 			float: left;
 			margin-right: 8px;
 			opacity: 1;
-			font: 10pt Arial, Helvetica, sans-serif;
 		}
 	</style>
 </head>
 <body bgcolor = "white">
 	<div id="my_container">
-		<h4 style="color: #444">Mapping NYC 311 complaints and 3-year ACS poverty statistics</h4>
-		<div id="map"></div>
+		<h3 style="color: #444; padding-left: 6px;">Mapping NYC 311 complaints and 3-year ACS poverty statistics</h3>
 		<div class="my_inputs">
-			<b><p>Choose a complaint type</p></b><br/>
-			<b><p>Choose a population</p></b>
+			<form role="form">
+			<b>Choose a population:</b>&nbsp&nbsp
+			<label class="radio-inline"><input type="radio" name="pop" value="all" checked>All people</label> 
+			<label class="radio-inline"><input type="radio" name="pop" value="families">All families</label> 
+			<label class="radio-inline"><input type="radio" name="pop" value="under5">Children under age 5</label>
+			<label class="radio-inline"><input type="radio" name="pop" value="under18">Children under age 18</label>
+			<label class="radio-inline"><input type="radio" name="pop" value="elderly">Age 65 and over</label>
+			</form>
+			<!--<b><p>Choose a population</p></b>
 			<br /><button type="button" class="btn btn-success btn-md" onclick="displayDate()">Try it Yourself >></button><br/>
 			<br/><b><p>Save this image</p></b><br/>
-			<p id="demo"></p>
-		</div>
+			<p id="demo"></p>-->
+		</div> 
+		<div id="map"></div><br class="clear"/>
 	</div>
 
     <script type="text/javascript" src="http://cdn.leafletjs.com/leaflet-0.7.3/leaflet.js"></script>
@@ -101,19 +105,19 @@
         }).addTo(map);
 
 		// control that shows neighborhood info on hover
-		var my_info = L.control();
+		var info = L.control();
 
-		my_info.onAdd = function (map) {
-			this._div = L.DomUtil.create('div', 'my_info');
+		info.onAdd = function (map) {
+			this._div = L.DomUtil.create('div', 'info');
 			this.update();
 			return this._div;
 		};
 
-		my_info.update = function (props) {
+		info.update = function (props) {
 			this._div.innerHTML = (props ?
 				'<b>' + props.CD_Name + '</b><br/>' + 
 				props.FamBwPvP + '% of households earned below poverty level<br/>' +
-				'<br/><b>Top complaints in this neighborhood</b>' +
+				'<br/><b>Top complaints</b>' +
 				'<table>' +
 				    '<tr><td>' + props.ComplaintType1 + '&nbsp</td><td>' + props.CallPct1 + '%</td></tr>' +
 				    '<tr><td>' + props.ComplaintType2 + '&nbsp</td><td>' + props.CallPct2 + '%</td></tr>' +
@@ -124,7 +128,7 @@
 				: '<b>Hover over a New York City neighborhood</b>');
 		};
 
-		my_info.addTo(map);
+		info.addTo(map);
 
 		// get color depending on ACS FamBwPvP value
 		function getColor(d) {
@@ -160,14 +164,14 @@
 				layer.bringToFront();
 			}
 
-			my_info.update(layer.feature.properties);
+			info.update(layer.feature.properties);
 		}
 
 		var geojson;
 
 		function resetHighlight(e) {
 			geojson.resetStyle(e.target);
-			my_info.update();
+			info.update();
 		}
 
 		function zoomToFeature(e) {
@@ -191,13 +195,13 @@
         map.attributionControl.addAttribution('311 data &copy; <a href="https://data.cityofnewyork.us/Social-Services/311-Service-Requests-from-2010-to-Present/erm2-nwe9">NYC OpenData</a>');
 
 
-		var my_legend = L.control({position: 'bottomright'});
+		var legend = L.control({position: 'bottomleft'});
 
-		my_legend.onAdd = function (map) {
+		legend.onAdd = function (map) {
 
-			var div = L.DomUtil.create('div', 'my_info my_legend'),
+			var div = L.DomUtil.create('div', 'info legend'),
 				grades = [0, 10, 20, 30, 40],
-				labels = ["<h5>% below poverty level</h5>"],
+				labels = ["<b>% below poverty level</b>"],
 				from, to;
 
 			for (var i = 0; i < grades.length; i++) {
@@ -206,14 +210,17 @@
 
 				labels.push(
 					'<i style="background:' + getColor(from + 1) + '"></i> ' +
-					from + (to ? '&ndash;' + to : '+'));
+					(to ? '(' : '') +
+					from + 
+					(to ? '&ndash;' + to : '+') + 
+					(to ? ']' : ''));
 			}
 
 			div.innerHTML = labels.join('<br>');
 			return div;
 		};
 
-		my_legend.addTo(map);
+		legend.addTo(map);
 
 
 	</script>

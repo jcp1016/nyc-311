@@ -1,6 +1,6 @@
 ##---------------------------------------------------------------------------------
-## This script links 2013 3-year ACS data with 2013 NYC 311 data and  
-## generates an interactive choropleth map.
+## This script links 2013 3-year ACS data with 2013 NYC 311 data and
+## generates an interactive choropleth map in R.
 ## Author:  Janet Prumachuk
 ##---------------------------------------------------------------------------------
 rm(list=ls())
@@ -21,9 +21,9 @@ poverty_data <- poverty[-1,-xvals]
 poverty_data <- poverty_data[,c(2,4,5)]
 poverty_data$puma <- as.factor(poverty_data$PUMA_ID)
 poverty_data[,3] <- as.numeric(poverty_data[,3])
-poverty_data$FamPvCat <- cut(poverty_data$FamBwPvP, 
-                             breaks=c(0,10,20,30,40,50), 
-                             labels=c( "(0-10%)", "[10-20%)","[20-30%)", "[30-40%)", "[40-50%)" ), 
+poverty_data$FamPvCat <- cut(poverty_data$FamBwPvP,
+                             breaks=c(0,10,20,30,40,50),
+                             labels=c( "(0-10%)", "[10-20%)","[20-30%)", "[30-40%)", "[40-50%)" ),
                              include.lowest=TRUE)
 
 ## Get map shapes for New York census tracts
@@ -46,7 +46,7 @@ row.names(puma_data) <- sapply(slot(pumas, "polygons"), function(x) slot(x, "ID"
 puma_df <- SpatialPolygonsDataFrame(pumas, data=puma_data)
 
 # Format the map popups
-m_pop <- paste0("<strong>", 
+m_pop <- paste0("<strong>",
                 puma_df@data$CD_Name,
                 "</strong><br />",
                 puma_df@data$FamBwPvP,
@@ -68,8 +68,8 @@ m <- leaflet() %>%
                 popup = m_pop) %>%
         addControl(html="<b>Percentage of Households Earning Below Poverty Level</b> <br />Click on a neighborhood",
                    position = "topright") %>%
-        addLegend("topright", 
-              pal = pal, 
+        addLegend("topright",
+              pal = pal,
               values = puma_df@data$FamPvCat,
               #title = "Percentage of Households Below Poverty Level",
               opacity = 1) %>%

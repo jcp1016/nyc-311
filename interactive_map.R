@@ -1,6 +1,6 @@
 ##---------------------------------------------------------------------------------
 ## This script links 2013 3-year ACS data with 2013 NYC 311 data and
-## generates geoJSON file for use in an interactive choropleth map
+## generates geoJSON file for use in an interactive choropleth map in javascript
 ##
 ##---------------------------------------------------------------------------------
 #rm(list=ls())
@@ -18,17 +18,35 @@ for (i in 1:ncol(poverty))
     names(poverty)[i] <- poverty[1,i]
 xvals <- which(poverty[2,] == "(X)")
 poverty_data <- poverty[-1,-xvals]
-poverty_data <- poverty_data[,c(2,4,5)]
+poverty_data <- poverty_data[,c("PUMA_ID", "CD_Name", "PBwPvP", "FamBwPvP", "PU18BwPvP", "PU5cBwPvP", "P65plBwPvP")]
+
 poverty_data$puma <- as.factor(poverty_data$PUMA_ID)
-poverty_data$FamBwPvP <- as.numeric(poverty_data[,3])
-poverty_data$FamBwPvP <- round(poverty_data$FamBwPvP, digits=0)
+for (i in 3:7) {
+        poverty_data[,i] <- as.numeric(poverty_data[,i])
+        poverty_data[,i] <- round(poverty_data[,i], digits=0)
+}
+poverty_data$PvCat <- cut(poverty_data$PBwPvP,
+                             breaks=c(0,10,20,30,40,50,60),
+                             include.lowest=TRUE, right=FALSE)
+
 poverty_data$FamPvCat <- cut(poverty_data$FamBwPvP,
-                             breaks=c(0,10,20,30,40,50),
-                             labels=c( "(0-10%)", "[10-20%)","[20-30%)", "[30-40%)", "[40-50%)" ),
-                             include.lowest=TRUE)
+                             breaks=c(0,10,20,30,40,50,60),
+                             include.lowest=TRUE, right=FALSE)
+
+poverty_data$U18PvCat <- cut(poverty_data$PU18BwPvP,
+                             breaks=c(0,10,20,30,40,50,60),
+                             include.lowest=TRUE, right=FALSE)
+
+poverty_data$U5PvCat <- cut(poverty_data$PU5cBwPvP,
+                             breaks=c(0,10,20,30,40,50,60),
+                             include.lowest=TRUE, right=FALSE)
+
+poverty_data$O65PvCat <- cut(poverty_data$P65plBwPvP,
+                            breaks=c(0,10,20,30,40,50,60),
+                            include.lowest=TRUE, right=FALSE)
 
 ## Read and clean 311 data
-#nyc311_df <- read.csv("~/DATA/311_Service_Requests_from_2010_to_Present.csv", stringsAsFactors=FALSE)
+nyc311_df <- read.csv("~/DATA/311_Service_Requests_from_2010_to_Present.csv", stringsAsFactors=FALSE)
 names(nyc311_df)[6] <- "ComplaintType"
 names(nyc311_df)[9] <- "Zipcode"
 
@@ -43,7 +61,7 @@ nyc311_df$PUMA_ID <- as.factor(nyc311_df$PUMA_ID)
 ## Clean up complaint type
 nyc311_df$ComplaintType[nyc311_df$ComplaintType == "APPLIANCE"] <- "Appliance"
 nyc311_df$ComplaintType[nyc311_df$ComplaintType == "GENERAL CONSTRUCTION"] <- "Construction"
-nyc311_df$ComplaintType[nyc311_df$CnmplaintType == "CONSTRUCTION"] <- "Construction"
+nyc311_df$ComplaintType[nyc311_df$ComplaintType == "CONSTRUCTION"] <- "Construction"
 nyc311_df$ComplaintType[nyc311_df$ComplaintType == "Derelict Vehicles"] <- "Derelict Vehicle"
 nyc311_df$ComplaintType[nyc311_df$ComplaintType == "ELECTRIC"] <- "Electric"
 nyc311_df$ComplaintType[nyc311_df$ComplaintType == "GENERAL"] <- "General"
@@ -57,6 +75,7 @@ nyc311_df$ComplaintType[substr(nyc311_df$ComplaintType,1,5)  == "Noise"] <- "Noi
 nyc311_df$ComplaintType[substr(nyc311_df$ComplaintType,1,11) == "Street Sign"] <- "Street Sign Damaged/Missing"
 nyc311_df$ComplaintType[substr(nyc311_df$ComplaintType,1,10) == "Fire Alarm"] <- "Fire Alarm Addn/Modif/Insp"
 nyc311_df$ComplaintType[substr(nyc311_df$ComplaintType,1,12) == "Highway Sign"] <- "Highway Sign Damaged/Missing"
+nyc311_df$ComplaintType[substr(nyc311_df$ComplaintType,1,20) == "General Construction"] <- "Construction"
 
 ## Aggregate by complaint type
 by_cat <- group_by( nyc311_df, PUMA_ID, ComplaintType )
@@ -75,21 +94,20 @@ data <- merge(data, ptotal, by="PUMA_ID")
 data$CallPct <- round((data$NumCalls / data$TotalCalls) * 100, digits=0)
 data <- arrange(data, PUMA_ID, desc(CallPct))
 
-## Keep top 5 call categories by PUMA and combine with poverty data
+## Keep top n call categories by PUMA and combine with poverty data
+n <- 10
 require(data.table)
 d <- data.table(data, key="CallPct")
-top_calls <- d[, tail(.SD, 5), by=PUMA_ID]
+top_calls <- d[, tail(.SD, n), by=PUMA_ID]
 top_calls <- arrange(top_calls, PUMA_ID, desc(CallPct))
 tc <- top_calls[,.(PUMA_ID, ComplaintType, CallPct)]
 p <- as.vector(unique(tc$PUMA_ID))
 complaint_data <- data.frame(stringsAsFactors=FALSE)
 for (i in 1:length(p)) {
     puma_rows  <- data.frame(filter(tc, PUMA_ID == p[i]), stringsAsFactors=FALSE)
-    tmp_df <- data.frame(p[i], puma_rows[1,c(2,3)], puma_rows[2,c(2,3)], puma_rows[3,c(2,3)],
-                         puma_rows[4,c(2,3)], puma_rows[5,c(2,3)], stringsAsFactors=FALSE)
-    names(tmp_df) <- c("PUMA_ID", "ComplaintType1", "CallPct1", "ComplaintType2", "CallPct2",
-                       "ComplaintType3", "CallPct3", "ComplaintType4", "CallPct4", "ComplaintType5", "CallPct5")
-    complaint_data <- rbind(complaint_data, tmp_df)
+    tmp_df <- data.frame(p[i], puma_rows[c(1:n), c(2,3)], stringsAsFactors=FALSE)
+    names(tmp_df) <- c("PUMA_ID", paste("ComplaintType",i), paste("CallPct",i))
+    complaint_data <- cbind(complaint_data, tmp_df)
     rm(tmp_df)
 }
 complaint_data <- unique(complaint_data)
