@@ -3,12 +3,10 @@
 <head>
 	<title>What a million calls to 311 reveal about New York</title>
 	<meta charset="utf-8" />
-
-	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-
+	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 	<link rel="stylesheet" href="http://cdn.leafletjs.com/leaflet-0.7.3/leaflet.css" />
 	<!-- Bootstrap CDN -->
-	<link rel="stylesheet" href="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css">
+	<link rel="stylesheet" href="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css" />
 	<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
 	<script src="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
 
@@ -49,10 +47,8 @@
 			color: #555;
 		}
 		.info h5 {
-		/*	margin: 0 0 5px; */
 			color: #777;
 		}
-
 		.legend {
 			line-height: 18px;
 			color: #555;
@@ -70,31 +66,33 @@
 	<div id="my_container">
 		<h3 style="color: #444; padding-left: 6px;">Mapping NYC 311 complaints and 3-year ACS poverty statistics</h3>
 		<div class="my_inputs">
-			<form role="form">
+			<form id="pop_form" role="form">
 			<b>Choose a population:</b>&nbsp&nbsp
-			<label class="radio-inline"><input type="radio" name="pop" value="all" checked>All people</label> 
-			<label class="radio-inline"><input type="radio" name="pop" value="families">All families</label> 
-			<label class="radio-inline"><input type="radio" name="pop" value="under5">Children under age 5</label>
-			<label class="radio-inline"><input type="radio" name="pop" value="under18">Children under age 18</label>
-			<label class="radio-inline"><input type="radio" name="pop" value="elderly">Age 65 and over</label>
+			<label class="radio-inline"><input type="radio" name="pop" value="PBwPvP" checked onclick="getMap()">All people</label> 
+			<label class="radio-inline"><input type="radio" name="pop" value="FamBwPvP" onclick="getMap()">All families</label> 
+			<label class="radio-inline"><input type="radio" name="pop" value="PU5cBwPvP" onclick="displayDate()">Children under age 5</label>
+			<label class="radio-inline"><input type="radio" name="pop" value="PU18BwPvP" onclick="displayDate()">Children under age 18</label>
+			<label class="radio-inline"><input type="radio" name="pop" value="P65plBwPvP" onclick="displayDate()">Age 65 and over</label>
 			</form>
 			<!--<b><p>Choose a population</p></b>
 			<br /><button type="button" class="btn btn-success btn-md" onclick="displayDate()">Try it Yourself >></button><br/>
-			<br/><b><p>Save this image</p></b><br/>
-			<p id="demo"></p>-->
+			<br/><b><p>Save this image</p></b><br/> -->
+			<p id="demo"></p>
 		</div> 
 		<div id="map"></div><br class="clear"/>
 	</div>
 
     <script type="text/javascript" src="http://cdn.leafletjs.com/leaflet-0.7.3/leaflet.js"></script>
-	<script type="text/javascript" src="../DATA/polygons.js"></script>
+	<script type="text/javascript" src="scripts/polygons.js"></script>
 	<script type="text/javascript" src="https://www.google.com/jsapi"></script>
-
 	<script type="text/javascript">
+
+	//window.onload = getMap();
 
 		function displayDate() {
 			document.getElementById("demo").innerHTML = Date();
 		}
+
 
 		var map = L.map('map').setView([40.73269, -73.962021], 10);
 
@@ -114,39 +112,66 @@
 		};
 
 		info.update = function (props) {
+			var selectedPop = $('input[name = pop]:checked').val();	
+			switch(selectedPop) {
+				case "FamBwPvP":
+					ilabel = "all families"
+					break;
+				case "PBwPvP":
+					ilabel = "all people"
+					break;
+				case "PU18BwPvP":
+					ilabel = "children under age 18"
+					break;
+				case "PU5cBwPvP":
+					ilabel = "children under age 5"
+					break;
+				case "P65plBwPvP":
+					ilabel = "people age 65 and over"
+					break;
+				default:
+					ilabel = "unidentified"
+			}	
 			this._div.innerHTML = (props ?
 				'<b>' + props.CD_Name + '</b><br/>' + 
-				props.FamBwPvP + '% of households earned below poverty level<br/>' +
+				props[selectedPop] + '% of ' + ilabel + ' live below poverty level<br/>' +
 				'<br/><b>Top complaints</b>' +
 				'<table>' +
-				    '<tr><td>' + props.ComplaintType1 + '&nbsp</td><td>' + props.CallPct1 + '%</td></tr>' +
-				    '<tr><td>' + props.ComplaintType2 + '&nbsp</td><td>' + props.CallPct2 + '%</td></tr>' +
-				    '<tr><td>' + props.ComplaintType3 + '&nbsp</td><td>' + props.CallPct3 + '%</td></tr>' +
-				    '<tr><td>' + props.ComplaintType4 + '&nbsp</td><td>' + props.CallPct4 + '%</td></tr>' +
-				    '<tr><td>' + props.ComplaintType5 + '&nbsp</td><td>' + props.CallPct5 + '%</td></tr>' +
+				    '<tr><td>' + props.ComplaintType1  + '&nbsp</td><td>' + props.CallPct1  + '%</td></tr>' +
+				    '<tr><td>' + props.ComplaintType2  + '&nbsp</td><td>' + props.CallPct2  + '%</td></tr>' +
+				    '<tr><td>' + props.ComplaintType3  + '&nbsp</td><td>' + props.CallPct3  + '%</td></tr>' +
+				    '<tr><td>' + props.ComplaintType4  + '&nbsp</td><td>' + props.CallPct4  + '%</td></tr>' +
+				    '<tr><td>' + props.ComplaintType5  + '&nbsp</td><td>' + props.CallPct5  + '%</td></tr>' +
+				    '<tr><td>' + props.ComplaintType6  + '&nbsp</td><td>' + props.CallPct6  + '%</td></tr>' +
+				    '<tr><td>' + props.ComplaintType7  + '&nbsp</td><td>' + props.CallPct7  + '%</td></tr>' +
+				    '<tr><td>' + props.ComplaintType8  + '&nbsp</td><td>' + props.CallPct8  + '%</td></tr>' +
+				    '<tr><td>' + props.ComplaintType9  + '&nbsp</td><td>' + props.CallPct9  + '%</td></tr>' +
+				    '<tr><td>' + props.ComplaintType10 + '&nbsp</td><td>' + props.CallPct10 + '%</td></tr>' +
 			    '</table>'
 				: '<b>Hover over a New York City neighborhood</b>');
 		};
 
 		info.addTo(map);
 
-		// get color depending on ACS FamBwPvP value
+		// get color depending on value of ACS metric
 		function getColor(d) {
-			return d > 40  ? '#54278f' :
-			       d > 30  ? '#756bb1' :
-			       d > 20  ? '#9e9ac8' :
-			       d > 10  ? '#cbc9e2' :
-			                 '#f2f0f7' ;
+			return d >= 50  ? '#7a0177' :
+			       d >= 40  ? '#c51b8a' :
+			       d >= 30  ? '#f768a1' :
+			       d >= 20  ? '#fa9fb5' :
+			       d >= 10  ? '#fcc5c0' :
+			                 '#feebe2' ;
 		}
 
 		function style(feature) {
+			var selectedPop = $('input[name = pop]:checked').val();	
 			return {
 				weight: 0.5,
 				opacity: 1,
 				color: '#666',
 				dashArray: '',
 				fillOpacity: 1,
-				fillColor: getColor(feature.properties.FamBwPvP)
+				fillColor: getColor(feature.properties[selectedPop])
 			};
 		}
 
@@ -200,7 +225,7 @@
 		legend.onAdd = function (map) {
 
 			var div = L.DomUtil.create('div', 'info legend'),
-				grades = [0, 10, 20, 30, 40],
+				grades = [0, 10, 20, 30, 40, 50],
 				labels = ["<b>% below poverty level</b>"],
 				from, to;
 
@@ -222,6 +247,7 @@
 
 		legend.addTo(map);
 
+	
 
 	</script>
 </body>

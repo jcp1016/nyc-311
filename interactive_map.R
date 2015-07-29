@@ -58,7 +58,7 @@ zipcode_to_puma$zcta10 <- as.character(zipcode_to_puma$zcta10)
 nyc311_df$PUMA_ID <- lookup(nyc311_df$Zipcode, zipcode_to_puma[,c(1,4)])
 nyc311_df$PUMA_ID <- as.factor(nyc311_df$PUMA_ID)
 
-## Clean up complaint type
+## Clean up complaint types
 nyc311_df$ComplaintType[nyc311_df$ComplaintType == "APPLIANCE"] <- "Appliance"
 nyc311_df$ComplaintType[nyc311_df$ComplaintType == "GENERAL CONSTRUCTION"] <- "Construction"
 nyc311_df$ComplaintType[nyc311_df$ComplaintType == "CONSTRUCTION"] <- "Construction"
@@ -81,12 +81,12 @@ nyc311_df$ComplaintType[substr(nyc311_df$ComplaintType,1,20) == "General Constru
 by_cat <- group_by( nyc311_df, PUMA_ID, ComplaintType )
 nyc311_cat <- summarize( by_cat, n=n() )
 
-## Merge aggregated complaints with poverty stats by PUMA ID
+## Merge aggregated 311 data with poverty data by PUMA ID
 data <- merge(nyc311_cat, poverty_data, by="PUMA_ID")
 names(data)[6] <- "PvCategory"
 names(data)[3] <- "NumCalls"
 
-## Include totals by PUMA
+## Calculate summary stats by PUMA
 by_puma <- group_by( nyc311_df, PUMA_ID)
 ptotal <- summarize( by_puma, n=n() )
 names(ptotal)[2] <- "TotalCalls"
@@ -94,25 +94,34 @@ data <- merge(data, ptotal, by="PUMA_ID")
 data$CallPct <- round((data$NumCalls / data$TotalCalls) * 100, digits=0)
 data <- arrange(data, PUMA_ID, desc(CallPct))
 
-## Keep top n call categories by PUMA and combine with poverty data
+## Keep the top n call categories and flatten to one row per PUMA_ID
 n <- 10
 require(data.table)
 d <- data.table(data, key="CallPct")
 top_calls <- d[, tail(.SD, n), by=PUMA_ID]
-top_calls <- arrange(top_calls, PUMA_ID, desc(CallPct))
+top_calls <- arrange(top_calls, PUMA_ID, desc(NumCalls))
 tc <- top_calls[,.(PUMA_ID, ComplaintType, CallPct)]
 p <- as.vector(unique(tc$PUMA_ID))
-complaint_data <- data.frame(stringsAsFactors=FALSE)
 for (i in 1:length(p)) {
-    puma_rows  <- data.frame(filter(tc, PUMA_ID == p[i]), stringsAsFactors=FALSE)
-    tmp_df <- data.frame(p[i], puma_rows[c(1:n), c(2,3)], stringsAsFactors=FALSE)
-    names(tmp_df) <- c("PUMA_ID", paste("ComplaintType",i), paste("CallPct",i))
-    complaint_data <- cbind(complaint_data, tmp_df)
+    tmp_df  <- data.frame(filter(tc, PUMA_ID == p[i]), stringsAsFactors=FALSE)
+    tmp_df <- tmp_df[,c(2,3)]
+    tmp_complaint_data <- data.frame(p[i], stringsAsFactors=FALSE)
+    for (j in 1:10) {
+        names(tmp_df)  <- c(paste0("ComplaintType", j), paste0("CallPct", j))
+        tmp_complaint_data <- cbind(tmp_complaint_data, tmp_df[j,])
+    }
+    if (i > 1) {
+        complaint_data <- rbind(complaint_data, tmp_complaint_data)
+    } else {
+        complaint_data <- tmp_complaint_data
+    }
     rm(tmp_df)
+    rm(tmp_complaint_data)
 }
+names(complaint_data)[1] <- "PUMA_ID"
 complaint_data <- unique(complaint_data)
 all_data <- suppressWarnings(left_join(poverty_data, complaint_data, by="PUMA_ID"))
-rm(d, top_calls, tc, p, complaint_data)
+#rm(d, top_calls, tc, p, complaint_data)
 
 ## Get map shapes for New York City census tracts
 setwd("./OGPDownload-4")
@@ -128,7 +137,20 @@ nyc_shapes@data <- data.frame(nyc_shapes@data, all_data[match(nyc_shapes@data$pu
 # Unite shapes at puma level
 pumas <- unionSpatialPolygons(nyc_shapes, nyc_shapes@data$puma)
 nyc_shapes_data <- nyc_shapes@data
-puma_data <- unique(nyc_shapes_data[,c(9,17,18,20:30)])
+puma_data <- unique(nyc_shapes_data[,c("puma", "CD_Name",
+                                       "FamBwPvP","PBwPvP","PU18BwPvP","PU5cBwPvP","P65plBwPvP",
+                                       "PvCat","FamPvCat","U18PvCat","U5PvCat","O65PvCat",
+                                       "ComplaintType1", "CallPct1",
+                                       "ComplaintType2", "CallPct2",
+                                       "ComplaintType3", "CallPct3",
+                                       "ComplaintType4", "CallPct4",
+                                       "ComplaintType5", "CallPct5",
+                                       "ComplaintType6", "CallPct6",
+                                       "ComplaintType7", "CallPct7",
+                                       "ComplaintType8", "CallPct8",
+                                       "ComplaintType9", "CallPct9",
+                                       "ComplaintType10", "CallPct10"
+                                       )])
 puma_data <- arrange(puma_data, puma)
 row.names(puma_data) <- sapply(slot(pumas, "polygons"), function(x) slot(x, "ID"))
 puma_df <- SpatialPolygonsDataFrame(pumas, data=puma_data)
