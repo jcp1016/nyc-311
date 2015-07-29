@@ -124,7 +124,7 @@
 			this._div.innerHTML = (props ?
 				'<b>' + props.CD_Name + '</b><br/>' + 
 				props[selectedPop] + '% of ' + ilabel + ' live below poverty level<br/>' +
-				'<br/><b>Top complaints</b>' +
+				'<br/><b>Top complaints*</b>' +
 				'<table>' +
 				    '<tr><td>' + props.ComplaintType1  + '&nbsp</td><td>' + props.CallPct1  + '%</td></tr>' +
 				    '<tr><td>' + props.ComplaintType2  + '&nbsp</td><td>' + props.CallPct2  + '%</td></tr>' +
@@ -136,7 +136,8 @@
 				    '<tr><td>' + props.ComplaintType8  + '&nbsp</td><td>' + props.CallPct8  + '%</td></tr>' +
 				    '<tr><td>' + props.ComplaintType9  + '&nbsp</td><td>' + props.CallPct9  + '%</td></tr>' +
 				    '<tr><td>' + props.ComplaintType10 + '&nbsp</td><td>' + props.CallPct10 + '%</td></tr>' +
-			    '</table>'
+			    '</table><br/>' + 
+			    '<i>*as a proportion of all complaints from the community</i>'
 				: '<b>Hover over a New York City neighborhood</b>');
 		};
 
