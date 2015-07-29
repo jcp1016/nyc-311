@@ -64,20 +64,15 @@
 </head>
 <body bgcolor = "white">
 	<div id="my_container">
-		<h3 style="color: #444; padding-left: 6px;">Mapping NYC 311 complaints and 3-year ACS poverty statistics</h3>
+		<h3 style="color: #444; padding-left: 6px;">Children, poverty and 311 complaints in New York City</h3>
 		<div class="my_inputs">
 			<form id="pop_form" role="form">
 			<b>Choose a population:</b>&nbsp&nbsp
-			<label class="radio-inline"><input type="radio" name="pop" value="PBwPvP" checked onclick="getMap()">All people</label> 
-			<label class="radio-inline"><input type="radio" name="pop" value="FamBwPvP" onclick="getMap()">All families</label> 
-			<label class="radio-inline"><input type="radio" name="pop" value="PU5cBwPvP" onclick="displayDate()">Children under age 5</label>
-			<label class="radio-inline"><input type="radio" name="pop" value="PU18BwPvP" onclick="displayDate()">Children under age 18</label>
-			<label class="radio-inline"><input type="radio" name="pop" value="P65plBwPvP" onclick="displayDate()">Age 65 and over</label>
+			<label class="radio-inline"><input type="radio" name="pop" value="PU5cBwPvP" onclick="changeMap()" checked>Children under age 5</label>
+			<label class="radio-inline"><input type="radio" name="pop" value="PU18BwPvP" onclick="changeMap()">Children under age 18</label>
+			<label class="radio-inline"><input type="radio" name="pop" value="FamBwPvP" onclick="changeMap()">All families</label> 
+			<label class="radio-inline"><input type="radio" name="pop" value="PBwPvP" onclick="changeMap()">All people</label> 
 			</form>
-			<!--<b><p>Choose a population</p></b>
-			<br /><button type="button" class="btn btn-success btn-md" onclick="displayDate()">Try it Yourself >></button><br/>
-			<br/><b><p>Save this image</p></b><br/> -->
-			<p id="demo"></p>
 		</div> 
 		<div id="map"></div><br class="clear"/>
 	</div>
@@ -86,12 +81,6 @@
 	<script type="text/javascript" src="scripts/polygons.js"></script>
 	<script type="text/javascript" src="https://www.google.com/jsapi"></script>
 	<script type="text/javascript">
-
-	//window.onload = getMap();
-
-		function displayDate() {
-			document.getElementById("demo").innerHTML = Date();
-		}
 
 
 		var map = L.map('map').setView([40.73269, -73.962021], 10);
@@ -217,7 +206,7 @@
 		}).addTo(map);
 
 		map.attributionControl.addAttribution('2013 3-year ACS data &copy; <a href="http://census.gov/">US Census Bureau</a>');
-        map.attributionControl.addAttribution('311 data &copy; <a href="https://data.cityofnewyork.us/Social-Services/311-Service-Requests-from-2010-to-Present/erm2-nwe9">NYC OpenData</a>');
+        map.attributionControl.addAttribution('2013 311 data &copy; <a href="https://data.cityofnewyork.us/Social-Services/311-Service-Requests-from-2010-to-Present/erm2-nwe9">NYC OpenData</a>');
 
 
 		var legend = L.control({position: 'bottomleft'});
@@ -247,7 +236,12 @@
 
 		legend.addTo(map);
 
-	
+		function changeMap() {
+			geojson = L.geoJson(pumaData, {
+			style: style,
+			onEachFeature: onEachFeature
+			}).addTo(map);
+		}
 
 	</script>
 </body>
